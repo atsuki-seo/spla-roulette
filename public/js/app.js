@@ -522,6 +522,23 @@ function initializeResults() {
     }
 }
 
+/**
+ * Confirm member names and update result cards
+ */
+function confirmMembers() {
+    // Save all member names to localStorage
+    const memberCount = parseInt(document.getElementById('memberCount').value);
+    for (let i = 1; i <= memberCount; i++) {
+        const memberInput = document.getElementById(`memberName${i}`);
+        if (memberInput) {
+            localStorage.setItem(`memberName${i}`, memberInput.value);
+        }
+    }
+
+    // Reinitialize results to update member display names in result cards
+    initializeResults();
+}
+
 // ========== Roulette Logic ==========
 
 /**
@@ -619,6 +636,9 @@ function runRoulette(type) {
  * Run all roulettes
  */
 function runAllRoulette() {
+    // Update result cards with latest member names before running roulettes
+    initializeResults();
+
     runRoulette('rule');
     runRoulette('stage');
     runRoulette('weapon');
