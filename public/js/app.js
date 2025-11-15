@@ -922,6 +922,12 @@ function runAllRoulette() {
     // Update result cards with latest member names before running roulettes
     initializeResults();
 
+    // Apply team division if enabled
+    const teamDivisionEnabled = document.getElementById('teamDivisionToggle').checked;
+    if (teamDivisionEnabled) {
+        applyTeamDivisionState(true);
+    }
+
     runRoulette('rule');
     runRoulette('stage');
     runRoulette('weapon');
