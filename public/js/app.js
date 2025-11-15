@@ -36,6 +36,17 @@ let selectedItems = {
 let currentResults = {};
 let currentTeams = {}; // { memberId: 'alpha' | 'bravo' }
 
+// Button visibility state - snapshots of saved state
+let memberStateSnapshot = {};
+let filterStateSnapshot = {};
+
+// Temporary filter selections (not yet applied)
+let tempFilterSelections = {
+    rule: [],
+    stage: [],
+    weapon: []
+};
+
 // Cache key for section states
 const SECTION_STATES_KEY = 'spla-section-states';
 const FILTER_SECTION_STATE_KEY = 'spla-filter-section-state';
@@ -67,10 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeTeamDivisionCheckbox();
     document.getElementById('memberCount').addEventListener('change', () => {
-        // Save member count
-        localStorage.setItem('memberCount', document.getElementById('memberCount').value);
         initializeMemberNames();
-        initializeResults();
+        checkMemberChanges();
     });
     loadDataFromCacheOrAPI();
 });
@@ -93,6 +102,9 @@ async function loadDataFromCacheOrAPI() {
             await fetchAndCacheData();
             initializeUI();
         }
+
+        // Initialize button visibility and attach event listeners
+        initializeButtonVisibility();
     } catch (error) {
         console.error('Error loading data:', error);
         updateLoadingStatus('エラー: データを読み込めません');
@@ -180,6 +192,40 @@ async function refreshData() {
         console.error('Error refreshing data:', error);
         updateLoadingStatus('更新に失敗しました');
     }
+}
+
+/**
+ * Initialize button visibility and event listeners
+ */
+function initializeButtonVisibility() {
+    // Save initial states
+    saveCurrentMemberState();
+    saveCurrentFilterState();
+
+    // Initialize temporary filter selections with saved selections
+    tempFilterSelections.rule = [...selectedItems.rule];
+    tempFilterSelections.stage = [...selectedItems.stage];
+    tempFilterSelections.weapon = [...selectedItems.weapon];
+
+    // Add event listeners for group select all checkboxes
+    const selectAllRuleCheckbox = document.getElementById('selectAll-rule');
+    const selectAllStageCheckbox = document.getElementById('selectAll-stage');
+    const selectAllWeaponCheckbox = document.getElementById('selectAll-weapon');
+
+    if (selectAllRuleCheckbox) {
+        selectAllRuleCheckbox.addEventListener('change', handleSelectAllRules);
+    }
+    if (selectAllStageCheckbox) {
+        selectAllStageCheckbox.addEventListener('change', handleSelectAllStages);
+    }
+    if (selectAllWeaponCheckbox) {
+        selectAllWeaponCheckbox.addEventListener('change', handleSelectAllWeapons);
+    }
+
+    // Note: Event listeners for memberCount and teamDivisionToggle are already attached
+    // in DOMContentLoaded and initializeTeamDivisionCheckbox() respectively.
+    // Member name input listeners are attached in initializeMemberNames().
+    // Filter checkbox listeners are attached in createFilterList().
 }
 
 /**
@@ -356,14 +402,8 @@ function initializeTeamDivisionCheckbox() {
         applyTeamDivisionState(true);
     }
 
-    // Add change handler to checkbox
-    checkbox.addEventListener('change', () => {
-        // Save team division state to localStorage
-        localStorage.setItem('teamDivisionToggle', checkbox.checked.toString());
-
-        // Apply the state change
-        applyTeamDivisionState(checkbox.checked);
-    });
+    // Add change handler to checkbox - only trigger change detection, not immediate apply
+    checkbox.addEventListener('change', checkMemberChanges);
 }
 
 // ========== UI Initialization ==========
@@ -391,9 +431,7 @@ function initializeMemberNames() {
         input.placeholder = `メンバー${i}`;
         input.value = localStorage.getItem(`memberName${i}`) || `メンバー${i}`;
 
-        input.addEventListener('blur', () => {
-            localStorage.setItem(`memberName${i}`, input.value);
-        });
+        input.addEventListener('input', checkMemberChanges);
 
         group.appendChild(label);
         group.appendChild(input);
@@ -433,9 +471,19 @@ function initializeFilters() {
         );
     }
 
+    // Initialize temporary filter selections with saved selections
+    tempFilterSelections.rule = [...selectedItems.rule];
+    tempFilterSelections.stage = [...selectedItems.stage];
+    tempFilterSelections.weapon = [...selectedItems.weapon];
+
     createFilterList('rule', data.rules);
     createFilterList('stage', data.stages);
     createFilterList('weapon', data.weapons);
+
+    // Update select all checkbox states
+    updateGroupSelectAllCheckbox('rule');
+    updateGroupSelectAllCheckbox('stage');
+    updateGroupSelectAllCheckbox('weapon');
 }
 
 /**
@@ -452,17 +500,22 @@ function createFilterList(type, items) {
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `${type}-${item.key}`;
+        // Check box state based on selectedItems (saved state)
         checkbox.checked = selectedItems[type].includes(item.key);
 
         checkbox.addEventListener('change', () => {
+            // Update temporary filter selections only
             if (checkbox.checked) {
-                if (!selectedItems[type].includes(item.key)) {
-                    selectedItems[type].push(item.key);
+                if (!tempFilterSelections[type].includes(item.key)) {
+                    tempFilterSelections[type].push(item.key);
                 }
             } else {
-                selectedItems[type] = selectedItems[type].filter(key => key !== item.key);
+                tempFilterSelections[type] = tempFilterSelections[type].filter(key => key !== item.key);
             }
-            saveSelectedItems();
+            // Update select all checkbox states
+            updateGroupSelectAllCheckbox(type);
+            // Check for changes and trigger button visibility
+            checkFilterChanges();
         });
 
         const label = document.createElement('label');
@@ -523,11 +576,69 @@ function initializeResults() {
 }
 
 /**
+ * Save current member state for change detection
+ */
+function saveCurrentMemberState() {
+    const memberCount = parseInt(document.getElementById('memberCount').value);
+    memberStateSnapshot = {
+        memberCount: memberCount,
+        teamDivisionEnabled: document.getElementById('teamDivisionToggle').checked,
+        memberNames: {}
+    };
+
+    for (let i = 1; i <= memberCount; i++) {
+        const memberInput = document.getElementById(`memberName${i}`);
+        if (memberInput) {
+            memberStateSnapshot.memberNames[i] = memberInput.value;
+        }
+    }
+}
+
+/**
+ * Check if member settings have changed from the saved state
+ */
+function checkMemberChanges() {
+    const memberCount = parseInt(document.getElementById('memberCount').value);
+    const teamDivisionEnabled = document.getElementById('teamDivisionToggle').checked;
+
+    // Check if member count changed
+    if (memberCount !== memberStateSnapshot.memberCount) {
+        document.getElementById('confirmMembersBtn').style.display = 'block';
+        return;
+    }
+
+    // Check if team division setting changed
+    if (teamDivisionEnabled !== memberStateSnapshot.teamDivisionEnabled) {
+        document.getElementById('confirmMembersBtn').style.display = 'block';
+        return;
+    }
+
+    // Check if any member name changed
+    for (let i = 1; i <= memberCount; i++) {
+        const memberInput = document.getElementById(`memberName${i}`);
+        if (memberInput) {
+            const currentValue = memberInput.value;
+            const savedValue = memberStateSnapshot.memberNames[i] || '';
+            if (currentValue !== savedValue) {
+                document.getElementById('confirmMembersBtn').style.display = 'block';
+                return;
+            }
+        }
+    }
+
+    // No changes detected, hide button
+    document.getElementById('confirmMembersBtn').style.display = 'none';
+}
+
+/**
  * Confirm member names and update result cards
  */
 function confirmMembers() {
-    // Save all member names to localStorage
+    // Save member count to localStorage
     const memberCount = parseInt(document.getElementById('memberCount').value);
+    localStorage.setItem('memberCount', memberCount);
+
+    // Save all member names to localStorage
     for (let i = 1; i <= memberCount; i++) {
         const memberInput = document.getElementById(`memberName${i}`);
         if (memberInput) {
@@ -535,14 +646,186 @@ function confirmMembers() {
         }
     }
 
+    // Save team division state to localStorage and apply the change
+    const teamDivisionEnabled = document.getElementById('teamDivisionToggle').checked;
+    localStorage.setItem('teamDivisionToggle', teamDivisionEnabled);
+    applyTeamDivisionState(teamDivisionEnabled);
+
+    // Update state snapshot and hide button
+    saveCurrentMemberState();
+    document.getElementById('confirmMembersBtn').style.display = 'none';
+
     // Reinitialize results to update member display names in result cards
     initializeResults();
+}
+
+/**
+ * Save current filter state for change detection
+ */
+function saveCurrentFilterState() {
+    filterStateSnapshot = {
+        rule: [...selectedItems.rule],
+        stage: [...selectedItems.stage],
+        weapon: [...selectedItems.weapon]
+    };
+}
+
+/**
+ * Check if filter settings have changed from the saved state
+ */
+function checkFilterChanges() {
+    // Compare temporary selections with saved selections
+    const ruleChanged = tempFilterSelections.rule.length !== selectedItems.rule.length ||
+                       !tempFilterSelections.rule.every(item => selectedItems.rule.includes(item));
+
+    const stageChanged = tempFilterSelections.stage.length !== selectedItems.stage.length ||
+                        !tempFilterSelections.stage.every(item => selectedItems.stage.includes(item));
+
+    const weaponChanged = tempFilterSelections.weapon.length !== selectedItems.weapon.length ||
+                         !tempFilterSelections.weapon.every(item => selectedItems.weapon.includes(item));
+
+    if (ruleChanged || stageChanged || weaponChanged) {
+        document.getElementById('applyFilterSettingsBtn').style.display = 'block';
+    } else {
+        document.getElementById('applyFilterSettingsBtn').style.display = 'none';
+    }
+}
+
+/**
+ * Apply filter settings and save selections to localStorage
+ */
+function applyFilterSettings() {
+    // Apply temporary selections to selectedItems
+    selectedItems.rule = [...tempFilterSelections.rule];
+    selectedItems.stage = [...tempFilterSelections.stage];
+    selectedItems.weapon = [...tempFilterSelections.weapon];
+
+    // Save current filter selections to localStorage
+    saveSelectedItems();
+
+    // Update state snapshot and hide button
+    saveCurrentFilterState();
+    document.getElementById('applyFilterSettingsBtn').style.display = 'none';
+
+    // Reinitialize results to clear previous roulette results
+    initializeResults();
+}
+
+
+/**
+ * Update all individual filter checkboxes to match current temp selections
+ */
+function updateAllFilterCheckboxes() {
+    // Update rule checkboxes
+    data.rules.forEach(item => {
+        const checkbox = document.getElementById(`rule-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.rule.includes(item.key);
+        }
+    });
+
+    // Update stage checkboxes
+    data.stages.forEach(item => {
+        const checkbox = document.getElementById(`stage-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.stage.includes(item.key);
+        }
+    });
+
+    // Update weapon checkboxes
+    data.weapons.forEach(item => {
+        const checkbox = document.getElementById(`weapon-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.weapon.includes(item.key);
+        }
+    });
+}
+
+/**
+ * Update group select all checkbox state
+ */
+function updateGroupSelectAllCheckbox(type) {
+    const selectAllCheckbox = document.getElementById(`selectAll-${type}`);
+    if (!selectAllCheckbox) return;
+
+    const items = type === 'rule' ? data.rules : type === 'stage' ? data.stages : data.weapons;
+    const selectedCount = tempFilterSelections[type].length;
+
+    // Check if all items are selected
+    selectAllCheckbox.checked = (items.length > 0 && selectedCount === items.length);
+}
+
+/**
+ * Handle select all for rules
+ */
+function handleSelectAllRules(event) {
+    if (event.target.checked) {
+        tempFilterSelections.rule = data.rules.map(item => item.key);
+    } else {
+        tempFilterSelections.rule = [];
+    }
+
+    // Update checkboxes
+    data.rules.forEach(item => {
+        const checkbox = document.getElementById(`rule-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.rule.includes(item.key);
+        }
+    });
+
+    // Trigger change detection
+    checkFilterChanges();
+}
+
+/**
+ * Handle select all for stages
+ */
+function handleSelectAllStages(event) {
+    if (event.target.checked) {
+        tempFilterSelections.stage = data.stages.map(item => item.key);
+    } else {
+        tempFilterSelections.stage = [];
+    }
+
+    // Update checkboxes
+    data.stages.forEach(item => {
+        const checkbox = document.getElementById(`stage-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.stage.includes(item.key);
+        }
+    });
+
+    // Trigger change detection
+    checkFilterChanges();
+}
+
+/**
+ * Handle select all for weapons
+ */
+function handleSelectAllWeapons(event) {
+    if (event.target.checked) {
+        tempFilterSelections.weapon = data.weapons.map(item => item.key);
+    } else {
+        tempFilterSelections.weapon = [];
+    }
+
+    // Update checkboxes
+    data.weapons.forEach(item => {
+        const checkbox = document.getElementById(`weapon-${item.key}`);
+        if (checkbox) {
+            checkbox.checked = tempFilterSelections.weapon.includes(item.key);
+        }
+    });
+
+    // Trigger change detection
+    checkFilterChanges();
 }
 
 // ========== Roulette Logic ==========
 
 /**
  * Get available items (excluding selected items)
+ * Uses savedItems from localStorage for actual filtering
  */
 function getAvailableItems(type) {
     const itemsMap = {
