@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スプラトゥーン3 ルーレット</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>スプラトゥーン3 ルーレット</h1>
+        </header>
+
+        <main class="main-content">
+            <!-- Member Management Section -->
+            <section class="section member-section" data-section="memberSection">
+                <div class="section-header">
+                    <span class="section-toggle">▼</span>
+                    <h2>メンバー設定</h2>
+                </div>
+                <div class="section-content">
+                    <div class="member-setup">
+                        <label for="memberCount">プレイヤー数:</label>
+                        <select id="memberCount">
+                            <option value="1" selected>1人</option>
+                            <option value="2">2人</option>
+                            <option value="3">3人</option>
+                            <option value="4">4人</option>
+                            <option value="5">5人</option>
+                            <option value="6">6人</option>
+                            <option value="7">7人</option>
+                            <option value="8">8人</option>
+                        </select>
+                    </div>
+                    <div class="member-names" id="memberNames"></div>
+
+                    <!-- Team Division Section -->
+                    <div class="team-division-section">
+                        <div class="team-division-control">
+                            <input type="checkbox" id="teamDivisionToggle">
+                            <label for="teamDivisionToggle">チーム分け</label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Roulette Settings Section -->
+            <section class="section controls-section" data-section="controlsSection">
+                <div class="section-header">
+                    <span class="section-toggle">▼</span>
+                    <h2>ルーレット設定</h2>
+                </div>
+                <div class="section-content">
+                    <div class="filter-section-header">
+                        <span class="filter-section-toggle">▼</span>
+                        <p style="margin: 0; font-weight: bold;">基本設定</p>
+                    </div>
+                    <!-- Filter Settings -->
+                    <div class="filter-settings filter-section-content">
+                        <!-- Rules Filter -->
+                        <div class="filter-group">
+                            <h3>ルール</h3>
+                            <div class="filter-list" id="ruleFilter"></div>
+                        </div>
+
+                        <!-- Stages Filter -->
+                        <div class="filter-group">
+                            <h3>ステージ</h3>
+                            <div class="filter-list" id="stageFilter"></div>
+                        </div>
+
+                        <!-- Weapons Filter -->
+                        <div class="filter-group">
+                            <h3>ブキ</h3>
+                            <div class="filter-list" id="weaponFilter"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Roulette Execution Section -->
+            <section class="section results-section" data-section="resultsSection">
+                <div class="section-header">
+                    <span class="section-toggle">▼</span>
+                    <h2>ルーレット実行</h2>
+                </div>
+                <div class="section-content">
+                    <!-- All Roulette Button -->
+                    <button class="btn btn-primary btn-full-width" onclick="runAllRoulette()" style="margin-bottom: 20px;">
+                        すべてルーレット
+                    </button>
+
+                    <!-- Individual Roulette Buttons -->
+                    <div class="button-group">
+                        <button class="btn btn-team" id="teamDivisionOnlyBtn" onclick="divideTeams()" style="display: none;">
+                            チーム分けのみ
+                        </button>
+                        <button class="btn btn-secondary" onclick="runRuleRoulette()">
+                            ルールのみ
+                        </button>
+                        <button class="btn btn-secondary" onclick="runStageRoulette()">
+                            ステージのみ
+                        </button>
+                        <button class="btn btn-secondary" onclick="runWeaponRoulette()">
+                            ブキのみ
+                        </button>
+                    </div>
+
+                    <!-- Common Results (Rule & Stage) -->
+                    <div class="common-results">
+                        <div class="result-group">
+                            <h3>ルール</h3>
+                            <div class="result-value result-rule" id="commonRule">-</div>
+                        </div>
+                        <div class="result-group">
+                            <h3>ステージ</h3>
+                            <div class="result-value result-stage" id="commonStage">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Member Results (Weapons) -->
+                    <h3 style="margin-top: 30px; margin-bottom: 15px;">ルーレット結果</h3>
+                    <div class="results-container" id="resultsContainer"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-top">
+                <div class="footer-top-left">
+                    <p>データ出典: <a href="https://stat.ink/" target="_blank">stat.ink</a></p>
+                    <p class="loading-status" id="loadingStatus"></p>
+                </div>
+                <button class="btn btn-refresh" onclick="refreshData()">
+                    🔄 データ更新
+                </button>
+            </div>
+            <div class="footer-bottom">
+                <p id="copyright"></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
