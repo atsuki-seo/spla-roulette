@@ -46,6 +46,9 @@ build/
 out/
 *.tsbuildinfo
 
+# Firebase
+.firebase/
+
 # OS-specific
 .DS_Store
 .DS_Store?
