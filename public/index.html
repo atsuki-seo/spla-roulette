@@ -33,6 +33,7 @@
                 <div class="section-header">
                     <span class="section-toggle">▼</span>
                     <h2>メンバー設定</h2>
+                    <button id="confirmMembersBtn" class="btn btn-secondary btn-confirm" onclick="event.stopPropagation(); confirmMembers()" style="display: none;">反映</button>
                 </div>
                 <div class="section-content">
                     <div class="member-setup">
@@ -47,7 +48,6 @@
                             <option value="7">7人</option>
                             <option value="8">8人</option>
                         </select>
-                        <button class="btn btn-secondary" onclick="confirmMembers()">確定</button>
                     </div>
                     <div class="member-names" id="memberNames"></div>
 
@@ -66,6 +66,7 @@
                 <div class="section-header">
                     <span class="section-toggle">▼</span>
                     <h2>ルーレット設定</h2>
+                    <button id="applyFilterSettingsBtn" class="btn btn-secondary btn-confirm" onclick="event.stopPropagation(); applyFilterSettings()" style="display: none;">反映</button>
                 </div>
                 <div class="section-content">
                     <div class="filter-section-header">
@@ -76,19 +77,37 @@
                     <div class="filter-settings filter-section-content">
                         <!-- Rules Filter -->
                         <div class="filter-group">
-                            <h3>ルール</h3>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">ルール</h3>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="selectAll-rule">
+                                    <label for="selectAll-rule" style="margin: 0; font-size: 0.85rem; cursor: pointer;">全て</label>
+                                </div>
+                            </div>
                             <div class="filter-list" id="ruleFilter"></div>
                         </div>
 
                         <!-- Stages Filter -->
                         <div class="filter-group">
-                            <h3>ステージ</h3>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">ステージ</h3>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="selectAll-stage">
+                                    <label for="selectAll-stage" style="margin: 0; font-size: 0.85rem; cursor: pointer;">全て</label>
+                                </div>
+                            </div>
                             <div class="filter-list" id="stageFilter"></div>
                         </div>
 
                         <!-- Weapons Filter -->
                         <div class="filter-group">
-                            <h3>ブキ</h3>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">ブキ</h3>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="selectAll-weapon">
+                                    <label for="selectAll-weapon" style="margin: 0; font-size: 0.85rem; cursor: pointer;">全て</label>
+                                </div>
+                            </div>
                             <div class="filter-list" id="weaponFilter"></div>
                         </div>
                     </div>
